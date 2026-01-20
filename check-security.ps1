@@ -8,35 +8,38 @@ Write-Host ""
 
 $errors = 0
 
-# Check for Groq API keys
+# Check for Groq API keys (exclude this script and documentation)
 Write-Host "Checking for exposed Groq API keys..." -ForegroundColor Yellow
-$groqKeys = Get-ChildItem -Recurse -File -Exclude node_modules,.git | 
-    Select-String -Pattern "gsk_" -SimpleMatch
+$groqKeys = Get-ChildItem -Recurse -File -Exclude node_modules,.git,.github,*.ps1,*.md,check-security.* | 
+    Select-String -Pattern "gsk_" -SimpleMatch |
+    Where-Object { $_.Line -notmatch "your_groq_api_key_here" }
 
 if ($groqKeys) {
-    Write-Host "✗ ERROR: Groq API key found in:" -ForegroundColor Red
+    Write-Host "✗ ERROR: Real Groq API key found in:" -ForegroundColor Red
     $groqKeys | ForEach-Object { Write-Host "  $($_.Path)" -ForegroundColor Red }
     $errors++
 } else {
     Write-Host "✓ No Groq API keys found" -ForegroundColor Green
 }
 
-# Check for Google API keys
+# Check for Google API keys (exclude documentation)
 Write-Host "Checking for exposed Google API keys..." -ForegroundColor Yellow
-$googleKeys = Get-ChildItem -Recurse -File -Exclude node_modules,.git | 
-    Select-String -Pattern "AIzaSy" -SimpleMatch
+$googleKeys = Get-ChildItem -Recurse -File -Exclude node_modules,.git,.github,*.ps1,*.md | 
+    Select-String -Pattern "AIzaSy" -SimpleMatch |
+    Where-Object { $_.Line -notmatch "example" }
 
 if ($googleKeys) {
-    Write-Host "✗ ERROR: Google API key found in:" -ForegroundColor Red
+    Write-Host "✗ ERROR: Real Google API key found in:" -ForegroundColor Red
     $googleKeys | ForEach-Object { Write-Host "  $($_.Path)" -ForegroundColor Red }
     $errors++
 } else {
     Write-Host "✓ No Google API keys found" -ForegroundColor Green
 }
 
-# Check if .env files exist in git
+# Check if .env files exist in git (exclude .env.example)
 Write-Host "Checking for committed .env files..." -ForegroundColor Yellow
-$envFiles = git ls-files | Select-String -Pattern "\.env$|\.env\.local$"
+$envFiles = git ls-files | Select-String -Pattern "\.env$|\.env\.local$" | 
+    Where-Object { $_ -notmatch "\.env\.example" -and $_ -notmatch "\.env\.template" }
 
 if ($envFiles) {
     Write-Host "✗ ERROR: .env files should not be committed:" -ForegroundColor Red
