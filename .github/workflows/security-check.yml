@@ -1,0 +1,46 @@
+name: Security Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  check-secrets:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check for exposed secrets
+      run: |
+        echo "Checking for exposed API keys..."
+        
+        # Check for Groq API keys
+        if grep -r "gsk_" . --exclude-dir=node_modules --exclude-dir=.git; then
+          echo "ERROR: Groq API key found in code!"
+          exit 1
+        fi
+        
+        # Check for Google API keys
+        if grep -r "AIzaSy" . --exclude-dir=node_modules --exclude-dir=.git; then
+          echo "ERROR: Google API key found in code!"
+          exit 1
+        fi
+        
+        # Check if .env files are committed
+        if git ls-files | grep -E "\.env$|\.env\.local$"; then
+          echo "ERROR: .env files should not be committed!"
+          exit 1
+        fi
+        
+        echo "✓ No secrets found in code"
+    
+    - name: Verify .gitignore
+      run: |
+        if ! grep -q "\.env" .gitignore; then
+          echo "ERROR: .env not in .gitignore!"
+          exit 1
+        fi
+        echo "✓ .gitignore is properly configured"
